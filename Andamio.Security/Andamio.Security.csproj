@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{BAF533A6-E579-44B0-98DE-6659F1CA15F1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Andamio.Security</RootNamespace>
+    <AssemblyName>Andamio.Security</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccProvider>
+    </SccProvider>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.DirectoryServices" />
+    <Reference Include="System.IdentityModel" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ActiveDirectory\ActiveDirectory.cs" />
+    <Compile Include="ActiveDirectory\ActiveDirectoryExtensions.cs" />
+    <Compile Include="ActiveDirectory\DistinguishedName .cs" />
+    <Compile Include="ActiveDirectory\GroupDescriptor.cs" />
+    <Compile Include="ActiveDirectory\OrganizationalUnit.cs" />
+    <Compile Include="ActiveDirectory\UserDescriptor.cs" />
+    <Compile Include="Configuration\EnvironmentContextConfigSection.cs" />
+    <Compile Include="Configuration\SecurityAuthConfigSection.cs" />
+    <Compile Include="Exceptions\NotFoundException.cs" />
+    <Compile Include="EnvironmentContext.cs" />
+    <Compile Include="Exceptions\CriticalSecurityException.cs" />
+    <Compile Include="Exceptions\InvalidCredentialsException.cs" />
+    <Compile Include="Exceptions\InvalidTicketException.cs" />
+    <Compile Include="Exceptions\SecurityException.cs" />
+    <Compile Include="Exceptions\SessionExpiredException.cs" />
+    <Compile Include="Exceptions\UserNotAuthenticatedException.cs" />
+    <Compile Include="Exceptions\UserNotAuthorizedException.cs" />
+    <Compile Include="Exceptions\UserNotFoundException.cs" />
+    <Compile Include="Extensions\SecurityExtensions.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SecurityAuthority.cs" />
+    <Compile Include="Signature.cs" />
+    <Compile Include="UserCredentials.cs" />
+    <Compile Include="UserIdentity.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Andamio.Core\Andamio.Core.csproj">
+      <Project>{a2da1135-3952-4294-a7f9-e2c35b61f649}</Project>
+      <Name>Andamio.Core</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{80E7102C-3FDA-46F1-93D8-A8DFEFC97C85}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Framework.Pdf</RootNamespace>
+    <AssemblyName>Framework.Pdf</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccProvider>
+    </SccProvider>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DocumentFormat.OpenXml, Version=2.5.5631.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="itextsharp">
+      <HintPath>..\packages\iTextSharp.5.5.7\lib\itextsharp.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp">
+      <HintPath>..\packages\PDFsharp.1.32.3057.0\lib\net20\PdfSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Charting">
+      <HintPath>..\packages\PDFsharp.1.32.3057.0\lib\net20\PdfSharp.Charting.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Chunk.cs" />
+    <Compile Include="CompatiblePdfReader.cs" />
+    <Compile Include="ExcelPdfExporter.cs" />
+    <Compile Include="Header.cs" />
+    <Compile Include="iTextExtensions.cs" />
+    <Compile Include="NewLine.cs" />
+    <Compile Include="Paragraph.cs" />
+    <Compile Include="PdfDocumentSize.cs" />
+    <Compile Include="PdfElement.cs" />
+    <Compile Include="PdfElementFactory.cs" />
+    <Compile Include="PdfImage.cs" />
+    <Compile Include="PdfManifest.cs" />
+    <Compile Include="PdfPage.cs" />
+    <Compile Include="PdfPanel.cs" />
+    <Compile Include="Phrase.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Separator.cs" />
+    <Compile Include="SignaturePanel.cs" />
+    <Compile Include="Styles\ChunkStyle.cs" />
+    <Compile Include="Styles\HeaderStyle.cs" />
+    <Compile Include="Styles\ParagraphStyle.cs" />
+    <Compile Include="Styles\PdfAlignment.cs" />
+    <Compile Include="Styles\PdfElementStyle.cs" />
+    <Compile Include="Styles\PdfElementStyleFactory.cs" />
+    <Compile Include="Styles\PdfFont.cs" />
+    <Compile Include="Styles\PdfImageStyle.cs" />
+    <Compile Include="Styles\PdfManifestStyles.cs" />
+    <Compile Include="Styles\PdfPanelStyle.cs" />
+    <Compile Include="Styles\PdfUnit.cs" />
+    <Compile Include="Styles\PhraseStyle.cs" />
+    <Compile Include="Styles\SeparatorStyle.cs" />
+    <Compile Include="Styles\SignaturePanelStyle.cs" />
+    <Compile Include="Styles\TableCellStyle.cs" />
+    <Compile Include="Styles\TableStyle.cs" />
+    <Compile Include="Table.cs" />
+    <Compile Include="TableCell.cs" />
+    <Compile Include="TableRow.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Andamio.Core\Andamio.Core.csproj">
+      <Project>{a2da1135-3952-4294-a7f9-e2c35b61f649}</Project>
+      <Name>Andamio.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Andamio.Security\Andamio.Security.csproj">
+      <Project>{baf533a6-e579-44b0-98de-6659f1ca15f1}</Project>
+      <Name>Framework.Security</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="Microsoft.Office.Core">
+      <Guid>{2DF8D04C-5BFA-101B-BDE5-00AA0044DE52}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>5</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="Microsoft.Office.Interop.Excel">
+      <Guid>{00020813-0000-0000-C000-000000000046}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>7</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="VBIDE">
+      <Guid>{0002E157-0000-0000-C000-000000000046}</Guid>
+      <VersionMajor>5</VersionMajor>
+      <VersionMinor>3</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
