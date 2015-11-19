@@ -14,6 +14,7 @@ using System.CodeDom;
 using System.Reflection;
 using System.Diagnostics;
 
+using Andamio;
 using Andamio.Threading;
 using Andamio.Serialization;
 using Andamio.Data.Serialization;
@@ -237,7 +238,7 @@ namespace Andamio.Data.Entities
             }
         }
 
-        public EntityCollectionBase<EntityType> ForceLoadData()
+        public EntityCollectionBase<EntityType> Load()
         {
             _items.CollectionChanged -= new NotifyCollectionChangedEventHandler(OnListCollectionChanged);
 
@@ -292,7 +293,7 @@ namespace Andamio.Data.Entities
             }
             else
             {
-                ForceLoadData();
+                Load();
                 DeleteAll();
             }
         }

@@ -8,10 +8,17 @@ namespace Andamio
 {
     public sealed class SearchPageSettings
     {
-        public SearchPageSettings()
+        public SearchPageSettings(int pageSize, int pageIndex)
         {
-            PageIndex = 1;
-            PageSize = Int16.MaxValue;
+            if (pageSize <= 0) throw new ArgumentOutOfRangeException("pageSize");
+            if (pageIndex < 1) throw new ArgumentOutOfRangeException("pageIndex");
+            PageSize = pageSize;
+            PageIndex = pageIndex;
+        }
+
+        public SearchPageSettings() 
+            : this(pageSize: Int16.MaxValue, pageIndex: 1)
+        {
         }
 
         public int PageIndex { get; set; }

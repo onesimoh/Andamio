@@ -40,6 +40,14 @@ namespace Andamio.Data.Access
 
     public class DaoConfiguration
     {
+        #region Constructors
+        public DaoConfiguration()
+        {
+            EF = new EntityFrameworkConfiguration();
+        }
+
+        #endregion
+
         #region Factory
         private readonly object _syncLock = new object();
         private readonly Dictionary<Type, DaoEntityConfiguration> _mappings = new Dictionary<Type, DaoEntityConfiguration>();
@@ -67,7 +75,9 @@ namespace Andamio.Data.Access
                                 .Where(match => match.GetImplementedType(typeof(DaoBase<>)).GetGenericArguments().First().Equals(entityType))
                                 .SingleOrDefault();
 
-                            DaoBase dao = (DaoBase)Activator.CreateInstance(daoType);
+                            DaoBase dao = (DaoBase) Activator.CreateInstance(daoType);
+                            dao.ConnectionStringSettings = ConnectionStringSettings;
+                            dao.CommandTimeout = CommandTimeout;
 
                             entityConfig = new DaoEntityConfiguration();
                             entityConfig.BindTo(dao);
@@ -87,7 +97,21 @@ namespace Andamio.Data.Access
         #endregion
 
         #region Properties
+        /// Returns a DataProvider specific for that database to access.
+        /// </summary>
+        /// <returns>The DataProvider for the Database.</returns>
         public DbConnectionStringSettings ConnectionStringSettings { get; set; }
+
+        /// <summary>
+        ///  Gets or sets the timeout value, in seconds, for all object context operations.
+        ///   A null value indicates that the default value of the underlying provider will be used.
+        /// </summary>
+        public Nullable<int> CommandTimeout { get; set; }
+
+        #endregion
+
+        #region EF
+        public EntityFrameworkConfiguration EF { get; private set; }
 
         #endregion
     }
@@ -104,12 +128,13 @@ namespace Andamio.Data.Access
             return this;
         }
 
-        public DaoEntityConfiguration BindTo<DaoType>(DbConnectionStringSettings connectionStringSettings)
+        public DaoEntityConfiguration BindTo<DaoType>(DbConnectionStringSettings connectionStringSettings, Nullable<int> commandTimeout = null)
             where DaoType : DaoBase, new()
         {
             if (connectionStringSettings == null) throw new ArgumentNullException("connectionStringSettings");
-
-            BindTo<DaoType>().Dao.ConnectionStringSettings = connectionStringSettings;
+            DaoBase dao = BindTo<DaoType>().Dao;
+            dao.ConnectionStringSettings = connectionStringSettings;
+            dao.CommandTimeout = commandTimeout;
             return this;
         }
 
@@ -120,6 +145,70 @@ namespace Andamio.Data.Access
             return this;
         }
 
+        public DaoEntityConfiguration StubTo<EntityType>(StubDAO<EntityType> dao)
+            where EntityType : EntityBase, new()
+        {
+            if (dao == null) throw new ArgumentNullException("dao");
+
+            Dao = dao;
+            return this;
+        }
+
+        public DaoEntityConfiguration StubTo<DaoType>()
+            where DaoType : DaoBase, new()
+        {
+            if (!typeof(DaoType).DerivesFromType(typeof(StubDAO<>))) throw new InvalidCastException("Dao Type is not of Type StubDAO<>.");
+            Dao = Activator.CreateInstance<DaoType>();
+            return this;
+        }
+
         #endregion
     }
+
+    public class EntityFrameworkConfiguration
+    {
+        #region Register
+        public void RegisterDbContext<T>()
+            where T : DbContext
+        {
+            RegisterDbContext<T>(() => Activator.CreateInstance<T>());
+        }
+
+        public void RegisterDbContext<T>(Func<T> contextResolver)
+            where T : DbContext
+        {
+            if (contextResolver == null) throw new ArgumentNullException("contextResolver");
+            _ContextResolver = contextResolver;
+        }
+
+        #endregion
+
+        #region Resolve
+        private Func<DbContext> _ContextResolver;
+        public DbContext ResolveDbContext()
+        {
+            if (_ContextResolver == null)
+            {
+                Assembly asm = Assembly.GetEntryAssembly();
+                var allDbContexts = asm.GetTypes().Where(type => type.DerivesFromType<DbContext>());
+                if (!allDbContexts.Any())
+                {
+                    throw new InvalidOperationException();
+                }
+                if (allDbContexts.Count() > 1)
+                {
+                    throw new InvalidOperationException();
+                }
+
+                return (DbContext) Activator.CreateInstance(allDbContexts.First());
+            }
+            else
+            {
+                return _ContextResolver();
+            }
+        }
+
+        #endregion
+    }
+
 }

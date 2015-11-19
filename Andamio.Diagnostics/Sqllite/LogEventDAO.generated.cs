@@ -46,7 +46,7 @@ namespace Andamio.Diagnostics.Sqllite
         }
     }
 
-    public partial class LogEventDAO : EFSimpleKeyDaoBase<LogEvent, int, SqliteDataContext>
+    public partial class LogEventDAO : EFDaoBase<LogEvent>
     {
         #region Constructors
         public LogEventDAO()

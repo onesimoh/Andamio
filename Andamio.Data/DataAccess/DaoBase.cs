@@ -57,12 +57,18 @@ namespace Andamio.Data.Access
 
         #endregion
 
-        #region Protected Abstract Methods
+        #region Settings
         /// <summary>
         /// Returns a DataProvider specific for that database to access.
         /// </summary>
         /// <returns>The DataProvider for the Database.</returns>
         public virtual DbConnectionStringSettings ConnectionStringSettings { get; set; }
+
+        /// <summary>
+        ///  Gets or sets the timeout value, in seconds, for all object context operations.
+        ///   A null value indicates that the default value of the underlying provider will be used.
+        /// </summary>
+        public virtual Nullable<int> CommandTimeout { get; set; }
 
         #endregion
 

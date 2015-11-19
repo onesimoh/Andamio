@@ -69,6 +69,7 @@
     <Compile Include="DataAccess\DaoBase.cs" />
     <Compile Include="DataAccess\DaoEntity.cs" />
     <Compile Include="DataAccess\DaoQuery.cs" />
+    <Compile Include="DataAccess\StubDAO.cs" />
     <Compile Include="DataAccess\DataAccessBase.cs" />
     <Compile Include="DataAccess\DataProvider.cs" />
     <Compile Include="DataAccess\EFDaoBase.cs" />

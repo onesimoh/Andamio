@@ -18,10 +18,8 @@ namespace Andamio.Data.Access
     /// </summary>
     /// <typeparam name="EntityType">The Entity Type managed by this DAO.</typeparam>
     /// <typeparam name="EntityKey">The Entity Key Type that Identifies the Entities managed by this DAO.</typeparam>
-    /// <typeparam name="ObjectContextType">The Object Context to use with this DAO.</typeparam>
-    public abstract class EFSimpleKeyDaoBase<EntityType, EntityKey, DbContextType> : EFDaoBase<EntityType, DbContextType>
+    public abstract class EFSimpleKeyDaoBase<EntityType, EntityKey> : EFDaoBase<EntityType>
         where EntityType : SimpleKeyEntity<EntityKey>, new()
-        where DbContextType : DbContext
         where EntityKey : struct, IComparable<EntityKey>
     {
         #region Constructor
@@ -44,7 +42,7 @@ namespace Andamio.Data.Access
         {
             if (entityIDs == null) throw new ArgumentNullException("entityIDs");
 
-            using (DbContextType context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 return context.Set<EntityType>().Where(match => entityIDs.Contains(match.ID))
                     .AsNoTracking<EntityType>().ToList();

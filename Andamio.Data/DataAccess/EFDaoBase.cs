@@ -22,10 +22,8 @@ namespace Andamio.Data.Access
     /// Base class for Entity Andamio Data Access Objects (DAO).
     /// </summary>
     /// <typeparam name="EntityType">The Entity Type managed by this DAO.</typeparam>
-    /// <typeparam name="ObjectContextType">The Object Context to use with this DAO.</typeparam>
-    public class EFDaoBase<EntityType, DbContextType> : DaoBase<EntityType>
+    public class EFDaoBase<EntityType> : DaoBase<EntityType>
         where EntityType : EntityBase, new()
-        where DbContextType : DbContext
     {
         #region Constructor
         /// <summary>
@@ -33,6 +31,16 @@ namespace Andamio.Data.Access
         /// </summary>
         public EFDaoBase()
         {
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public EFDaoBase(Func<DbContext> contextResolver)
+        {
+            if (contextResolver == null) throw new ArgumentNullException("contextResolver");
+            _ContextResolver = contextResolver;
+            
         }
 
         #endregion
@@ -68,7 +76,7 @@ namespace Andamio.Data.Access
             if (entity == null) throw new ArgumentNullException("entity");
             if (entity.IsReadFromDatabase) throw new InvalidOperationException("Entity is already in the database.");
 
-            using (DbContextType context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 Insert(entity, context);
             }
@@ -81,7 +89,7 @@ namespace Andamio.Data.Access
         /// <exception cref="System.InvalidOperationException">
         /// When attempting to insert an Entity that already exists in the Data Source.
         /// </exception>
-        public virtual void Insert(EntityType entity, DbContextType context)
+        public virtual void Insert(EntityType entity, DbContext context)
         {
             if (entity == null) throw new ArgumentNullException("entity");
             if (context == null) throw new ArgumentNullException("context");
@@ -113,9 +121,9 @@ namespace Andamio.Data.Access
 
             using (TransactionWrapper transaction = TransactionWrapper.Create())
             {
-                using (DbContextType context = CreateDbContext())
+                using (var context = InstantiateDbContext())
                 {
-                    entities.ForEach(delegate(EntityType entity)
+                    entities.ForEach(entity =>
                     {
                         if (!entity.IsReadFromDatabase)
                         {
@@ -131,7 +139,7 @@ namespace Andamio.Data.Access
             }
         }
 
-        private void OnInsertEntity(DbContextType context, EntityType entity)
+        private void OnInsertEntity(DbContext context, EntityType entity)
         {
             if (!entity.IsReadFromDatabase)
             {
@@ -156,7 +164,7 @@ namespace Andamio.Data.Access
 
             if (entity.IsModified)
             {
-                using (DbContextType dbContext = CreateDbContext())
+                using (var dbContext = InstantiateDbContext())
                 {
                     Update(entity, dbContext);
                 }
@@ -170,7 +178,7 @@ namespace Andamio.Data.Access
         /// <exception cref="System.InvalidOperationException">
         /// When attempting to update an Entity that does not exist in the Data Source.
         /// </exception>        
-        public virtual void Update(EntityType entity, DbContextType context)
+        public virtual void Update(EntityType entity, DbContext context)
         {
             if (entity == null) throw new ArgumentNullException("entity");
             if (context == null) throw new ArgumentNullException("context");
@@ -179,23 +187,6 @@ namespace Andamio.Data.Access
             if (entity.IsModified)
             {
                 DbEntityEntry<EntityType> entityEntry = context.Entry<EntityType>(entity);
-
-                /*
-                var localEntries = dbContext.Set<EntityType>().Local;
-                ObjectStateManager objectStateManager = dbContext.GetObjStateManager();
-                var trackedEntities =  dbContext.ChangeTracker.Entries<EntityType>();
-                //var obj = objectStateManager.GetObjectStateEntry(entity);
-
-                DbEntityEntry<EntityType> trackedEntity;
-                if ((entity is IKeyedEntity) && dbContext.ChangeTracker.TryFindTrackedEntity<EntityType>((IKeyedEntity)entity, out trackedEntity))
-                {
-                    trackedEntity.CurrentValues.SetValues(entity);
-                }
-                else
-                {
-                    //entityEntry.State = EntityState.Unchanged;
-                }
-                */
 
                 try
                 {
@@ -220,7 +211,7 @@ namespace Andamio.Data.Access
         /// </summary>
         /// <param name="context">The ObjectContext instance managing the Update Operation.</param>
         /// <param name="entity">The Entity being updated.</param>
-        protected virtual void OnUpsertEntity(DbContextType context, EntityType entity)
+        protected virtual void OnUpsertEntity(DbContext context, EntityType entity)
         {
         }
 
@@ -237,7 +228,7 @@ namespace Andamio.Data.Access
 
             if (entity.IsReadFromDatabase)
             {
-                using (var context = CreateDbContext())
+                using (var context = InstantiateDbContext())
                 {
                     DbEntityEntry<EntityType> entityEntry = context.Entry<EntityType>(entity);
                     entityEntry.State = EntityState.Deleted;
@@ -254,7 +245,7 @@ namespace Andamio.Data.Access
         /// </summary>
         public override List<EntityType> All()
         {
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 return context.Set<EntityType>().AsNoTracking<EntityType>().ToList();
             }
@@ -268,7 +259,7 @@ namespace Andamio.Data.Access
         {
             if (predicate == null) throw new ArgumentNullException("predicate");
 
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 return context.Set<EntityType>().Where(predicate).AsNoTracking<EntityType>().ToList();
             }
@@ -282,7 +273,7 @@ namespace Andamio.Data.Access
         {
             if (predicate == null) throw new ArgumentNullException("predicate");
 
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 return context.Set<EntityType>().Where(predicate).AsNoTracking<EntityType>().FirstOrDefault();
             }
@@ -294,7 +285,7 @@ namespace Andamio.Data.Access
         /// <param name="primaryKey">The Primary Key that indentifies the Entity.</param>
         public override EntityType WithKey<EntityKey>(EntityKey primaryKey)
         {
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 EntityType entity = context.Set<EntityType>().Find(primaryKey);
                 if (entity != null)
@@ -321,7 +312,7 @@ namespace Andamio.Data.Access
 
             pageSettings = pageSettings ?? new SearchPageSettings();
 
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 var query = context.Set<EntityType>().Where(predicate);
                 if (sort != null)
@@ -346,7 +337,7 @@ namespace Andamio.Data.Access
 
             pageSettings = pageSettings ?? new SearchPageSettings();
 
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 IQueryable<EntityType> queryable = context.Set<EntityType>();
                 query.Queries.ForEach(predicate => queryable = queryable.Where(predicate));
@@ -396,7 +387,7 @@ namespace Andamio.Data.Access
         /// </summary>
         /// <param name="context">The ObjectContext instance managing the Operation.</param>
         /// <param name="entity">The Entity to populate.</param>
-        protected virtual void OnPopulateEntity(DbContextType context, EntityType entity)
+        protected virtual void OnPopulateEntity(DbContext context, EntityType entity)
         {
         }
 
@@ -412,7 +403,7 @@ namespace Andamio.Data.Access
 
             string navigationPropertyName = ((MemberExpression)navigationProperty.Body).Member.Name;
 
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 context.Set<EntityType>().Attach(entity);
                 var query = context.Entry<EntityType>(entity).Collection<CollectionType>(navigationProperty).Query();
@@ -420,21 +411,20 @@ namespace Andamio.Data.Access
 
                 ObjectStateManager objectStateManager = context.GetObjStateManager();
 
-                var collection = (EntityCollectionBase<CollectionType>) navigationProperty.Compile().Invoke(entity);
+                var collection = (EntityCollectionBase<CollectionType>) navigationProperty.Compile().Invoke(entity); 
+
                 foreach (CollectionType childEntity in collection)
                 {
                     if (childEntity.IsModified)
                     {
-                        DAO.For<CollectionType>().Upsert(childEntity);                        
+                        DAO.For<CollectionType>().Upsert(childEntity);
                     }
 
                     if (!relatedEntities.Any(match => match.Equals(childEntity)))
                     {
-                        objectStateManager.ChangeRelationshipState(entity, childEntity, navigationPropertyName, EntityState.Added);                    
-                    }
+                        objectStateManager.ChangeRelationshipState(entity, childEntity, navigationPropertyName, EntityState.Added);
+                    }                   
                 }
-
-                context.SaveChanges();
 
                 if (collection.DeletedItems.Any())
                 {
@@ -454,7 +444,7 @@ namespace Andamio.Data.Access
                 {
                     collection.DeletedItems.ForEach(deletedItem => DAO.For<CollectionType>().Delete(deletedItem));
                     context.SaveChanges();
-                }                
+                } 
             }
         }
 
@@ -466,7 +456,7 @@ namespace Andamio.Data.Access
         {
             if (entity == null) throw new ArgumentNullException("entity");
 
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 context.Set<EntityType>().Attach(entity);
                 var query = context.Entry<EntityType>(entity).Collection<RelatedType>(navigationProperty).Query().AsNoTracking();
@@ -480,7 +470,7 @@ namespace Andamio.Data.Access
         {
             if (entity == null) throw new ArgumentNullException("entity");
 
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 context.Set<EntityType>().Attach(entity);
                 var query = context.Entry<EntityType>(entity).Collection<RelatedType>(navigationProperty).Query()
@@ -493,7 +483,7 @@ namespace Andamio.Data.Access
         internal override RelatedType GetRelated<RelatedType>(EntityType entity
             , Expression<Func<EntityType, RelatedType>> navigationProperty)
         {
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 context.Set<EntityType>().Attach(entity);
                 var query = context.Entry<EntityType>(entity).Reference<RelatedType>(navigationProperty).Query().AsNoTracking();
@@ -504,7 +494,7 @@ namespace Andamio.Data.Access
         internal override void Load<RelatedType>(EntityType entity
             , Expression<Func<EntityType, ICollection<RelatedType>>> navigationProperty)
         {
-            using (var context = CreateDbContext())
+            using (var context = InstantiateDbContext())
             {
                 var entries = context.ChangeTracker.Entries();
 
@@ -530,21 +520,38 @@ namespace Andamio.Data.Access
         #endregion
 
         #region DbContext
+        private readonly Func<DbContext> _ContextResolver;
+
         /// <summary>
         /// Creates the Object Context instance for the Connection String.
         /// </summary>
-        protected virtual DbContextType CreateDbContext()
-        {
-            var dbContext = Activator.CreateInstance<DbContextType>();
-            if (ConnectionStringSettings != null)
+        protected virtual DbContext InstantiateDbContext()
+        {            
+            DbContext dbContext = (_ContextResolver != null) ? _ContextResolver() : DAO.Configuration.EF.ResolveDbContext();
+            if (dbContext == null)
+            {
+                throw new Exception("A DbContext could not be resolved!");
+            }
+
+            if (ConnectionStringSettings != null && dbContext.Database.Connection.ConnectionString.IsNullOrBlank())
             {
                 dbContext.Database.Connection.ConnectionString = ConnectionStringSettings.ConnectionString;
+            }
+            
+            if (dbContext.Database.Connection.ConnectionString.IsNullOrBlank() && DAO.Configuration.ConnectionStringSettings != null)
+            {
+                dbContext.Database.Connection.ConnectionString = DAO.Configuration.ConnectionStringSettings.ConnectionString;
+            }
+
+            if (dbContext.Database.Connection.ConnectionString.IsNullOrBlank())
+            {
+                throw new InvalidOperationException("A valid Connection String has not been configured.");
             }
 
             ObjectContext objectContext = ((IObjectContextAdapter) dbContext).ObjectContext;
             objectContext.ObjectMaterialized += new ObjectMaterializedEventHandler(Context_ObjectMaterialized);
             objectContext.SavingChanges += new EventHandler(Context_SavingChanges);
-            objectContext.CommandTimeout = 120;
+            objectContext.CommandTimeout = CommandTimeout;
 
             return dbContext;
         }
@@ -577,7 +584,9 @@ namespace Andamio.Data.Access
                 {
                     EntityState entityState = entity.IsReadFromDatabase ? EntityState.Modified : EntityState.Added;
                     if (changedEntity.State != entityState)
-                    { changedEntity.ChangeState(entityState); }
+                    { 
+                        changedEntity.ChangeState(entityState); 
+                    }
                 }
 
                 if (changedEntity.Entity is IAuditable)
@@ -616,10 +625,10 @@ namespace Andamio.Data.Access
                 entity.IsReadFromDatabase = true;
                 entity.IsModified = false;
 
-                DbContextType dbContext = sender as DbContextType;
+                DbContext dbContext = sender as DbContext;
                 if (entity is EntityType)
                 {
-                    OnPopulateEntity(dbContext, (EntityType)entity);
+                    OnPopulateEntity(dbContext, (EntityType) entity);
                 }
             }
         }
