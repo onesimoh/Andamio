@@ -21,8 +21,8 @@ namespace Andamio.Data.Access
         public static DaoBase<EntityType> For<EntityType>()
             where EntityType : EntityBase, new()
         {
-            DaoEntityConfiguration entityConfig = Configuration[typeof(EntityType)];
-            return (DaoBase<EntityType>) entityConfig.Dao;
+            DaoEntityConfiguration<EntityType> entityConfig = Configuration.Resolve<EntityType>();
+            return entityConfig.Dao;
         }
 
         #endregion
@@ -51,47 +51,45 @@ namespace Andamio.Data.Access
         #region Factory
         private readonly object _syncLock = new object();
         private readonly Dictionary<Type, DaoEntityConfiguration> _mappings = new Dictionary<Type, DaoEntityConfiguration>();
-        public DaoEntityConfiguration For<EntityType>()
+
+        public DaoEntityConfiguration<EntityType> For<EntityType>()
             where EntityType : EntityBase, new()
         {
-            DaoEntityConfiguration entityConfig = new DaoEntityConfiguration();
+            DaoEntityConfiguration<EntityType> entityConfig = new DaoEntityConfiguration<EntityType>();
             _mappings.Add(typeof(EntityType), entityConfig);
             return entityConfig;
         }
 
-        internal DaoEntityConfiguration this[Type entityType]
+        internal DaoEntityConfiguration<EntityType> Resolve<EntityType>()
+            where EntityType : EntityBase, new()
         {
-            get
+            DaoEntityConfiguration entityConfig;
+            if (!_mappings.ContainsKey(typeof(EntityType)))
             {
-                DaoEntityConfiguration entityConfig;
-                if (!_mappings.ContainsKey(entityType))
+                lock (_syncLock)
                 {
-                    lock (_syncLock)
+                    if (!_mappings.TryGetValue(typeof(EntityType), out entityConfig))
                     {
-                        if (!_mappings.TryGetValue(entityType, out entityConfig))
-                        {
-                            Assembly asm = Assembly.GetAssembly(entityType);
-                            Type daoType = asm.GetTypes().Where(type => type.DerivesFromType(typeof(DaoBase<>)))
-                                .Where(match => match.GetImplementedType(typeof(DaoBase<>)).GetGenericArguments().First().Equals(entityType))
-                                .SingleOrDefault();
+                        Assembly asm = Assembly.GetAssembly(typeof(EntityType));
+                        Type daoType = asm.GetTypes().Where(type => type.DerivesFromType(typeof(DaoBase<>)))
+                            .Where(match => match.GetImplementedType(typeof(DaoBase<>)).GetGenericArguments().First().Equals(typeof(EntityType)))
+                            .SingleOrDefault();
 
-                            DaoBase dao = (DaoBase) Activator.CreateInstance(daoType);
-                            dao.ConnectionStringSettings = ConnectionStringSettings;
-                            dao.CommandTimeout = CommandTimeout;
+                        DaoBase<EntityType> dao = (DaoBase<EntityType>) Activator.CreateInstance(daoType);
+                        dao.ConnectionStringSettings = ConnectionStringSettings;
+                        dao.CommandTimeout = CommandTimeout;
 
-                            entityConfig = new DaoEntityConfiguration();
-                            entityConfig.BindTo(dao);
-                            _mappings.Add(entityType, entityConfig);
-                        }
+                        entityConfig = new DaoEntityConfiguration<EntityType>(dao);
+                        _mappings.Add(typeof(EntityType), entityConfig);
                     }
                 }
-                else
-                {
-                    entityConfig = _mappings[entityType];
-                }
-
-                return entityConfig;
             }
+            else
+            {
+                entityConfig = _mappings[typeof(EntityType)];
+            }
+
+            return (DaoEntityConfiguration<EntityType>) entityConfig;
         }
 
         #endregion
@@ -117,19 +115,34 @@ namespace Andamio.Data.Access
     }
 
 
-    public class DaoEntityConfiguration
+    public abstract class DaoEntityConfiguration { }
+    public class DaoEntityConfiguration<EntityType> : DaoEntityConfiguration
+        where EntityType : EntityBase, new()
     {
+        #region Constructors
+        internal DaoEntityConfiguration()
+        {
+
+        }
+
+        internal DaoEntityConfiguration(DaoBase<EntityType> dao)
+        {
+            BindTo(dao);
+        }
+
+        #endregion
+
         #region Bindings
-        internal DaoBase Dao { get; private set; }
-        public DaoEntityConfiguration BindTo<DaoType>()
-            where DaoType : DaoBase, new()
+        internal DaoBase<EntityType> Dao { get; private set; }
+        public DaoEntityConfiguration<EntityType> BindTo<DaoType>()
+            where DaoType : DaoBase<EntityType>, new()
         {
             Dao = Activator.CreateInstance<DaoType>();
             return this;
         }
 
-        public DaoEntityConfiguration BindTo<DaoType>(DbConnectionStringSettings connectionStringSettings, Nullable<int> commandTimeout = null)
-            where DaoType : DaoBase, new()
+        public DaoEntityConfiguration<EntityType> BindTo<DaoType>(DbConnectionStringSettings connectionStringSettings, Nullable<int> commandTimeout = null)
+            where DaoType : DaoBase<EntityType>, new()
         {
             if (connectionStringSettings == null) throw new ArgumentNullException("connectionStringSettings");
             DaoBase dao = BindTo<DaoType>().Dao;
@@ -138,32 +151,51 @@ namespace Andamio.Data.Access
             return this;
         }
 
-        public DaoEntityConfiguration BindTo(DaoBase dao)
+        public DaoEntityConfiguration<EntityType> BindTo(DaoBase<EntityType> dao)
         {
             if (dao == null) throw new ArgumentNullException("dao");
             Dao = dao;
-            return this;
-        }
-
-        public DaoEntityConfiguration StubTo<EntityType>(StubDAO<EntityType> dao)
-            where EntityType : EntityBase, new()
-        {
-            if (dao == null) throw new ArgumentNullException("dao");
-
-            Dao = dao;
-            return this;
-        }
-
-        public DaoEntityConfiguration StubTo<DaoType>()
-            where DaoType : DaoBase, new()
-        {
-            if (!typeof(DaoType).DerivesFromType(typeof(StubDAO<>))) throw new InvalidCastException("Dao Type is not of Type StubDAO<>.");
-            Dao = Activator.CreateInstance<DaoType>();
             return this;
         }
 
         #endregion
+
+        #region Stubs
+        public DaoEntityConfiguration<EntityType> UseFake(FakeDAO<EntityType> dao)
+        {
+            if (dao == null) throw new ArgumentNullException("dao");
+            Dao = dao;
+            return this;
+        }
+
+        public DaoEntityConfiguration<EntityType> UseFake<DaoType>()
+            where DaoType : FakeDAO<EntityType>, new()
+        {
+            Dao = Activator.CreateInstance<DaoType>();
+            return this;
+        }
+
+        public DaoEntityConfiguration<EntityType> UseFake<DaoType>(IEnumerable<EntityType> entities)
+            where DaoType : FakeDAO<EntityType>, new()
+        {
+            var args = new object[] { entities };
+            Dao = (DaoType) Activator.CreateInstance(typeof(DaoType), args);
+            return this;
+        }
+
+        public DaoEntityConfiguration<EntityType> UseFake()
+        {
+            return UseFake<FakeDAO<EntityType>>();
+        }
+
+        public DaoEntityConfiguration<EntityType> UseFake(IEnumerable<EntityType> entities)
+        {
+            return UseFake<FakeDAO<EntityType>>(entities);
+        }
+
+        #endregion
     }
+
 
     public class EntityFrameworkConfiguration
     {

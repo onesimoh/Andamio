@@ -17,7 +17,7 @@ using Andamio.Data.Entities;
 
 namespace Andamio.Data.Access
 {
-    public partial class StubDAO<EntityType> : DaoBase<EntityType>
+    public partial class FakeDAO<EntityType> : DaoBase<EntityType>
         where EntityType : EntityBase, new()
     {
         #region Internals
@@ -38,11 +38,18 @@ namespace Andamio.Data.Access
         /// <summary>
         /// Default Constructor.
         /// </summary>
-        public StubDAO()
+        public FakeDAO()
         {
             _Internal.ItemInserted += OnEntitiesInserted;
         }
 
+        /// <summary>
+        /// Default Constructor.
+        /// </summary>
+        public FakeDAO(IEnumerable<EntityType> entities) : this()
+        {
+            _Internal.AddRange(entities);
+        }
 
         #endregion
 
