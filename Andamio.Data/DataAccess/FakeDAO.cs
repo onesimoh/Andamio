@@ -21,7 +21,7 @@ namespace Andamio.Data.Access
         where EntityType : EntityBase, new()
     {
         #region Internals
-        private static readonly EntityRelationshipRepository _EntityRelationshipRepository = new EntityRelationshipRepository();
+        private static readonly EntityRelationshipRepository _Repository = new EntityRelationshipRepository();
         void OnEntitiesInserted(object sender, EntityCollectionEventArgs<EntityType> e)
         {
             EntityType entity = e.Item;
@@ -40,7 +40,6 @@ namespace Andamio.Data.Access
         /// </summary>
         public FakeDAO()
         {
-            _Internal.ItemInserted += OnEntitiesInserted;
         }
 
         /// <summary>
@@ -48,7 +47,7 @@ namespace Andamio.Data.Access
         /// </summary>
         public FakeDAO(IEnumerable<EntityType> entities) : this()
         {
-            _EntityRelationshipRepository.Add(entities);
+            _Repository.Entities.AddRange(entities);
         }
 
         #endregion
@@ -64,9 +63,10 @@ namespace Andamio.Data.Access
         public override void Insert(EntityType entity)
         {
             if (entity == null) throw new ArgumentNullException("entity");
-            if (entity.IsReadFromDatabase || _EntityRelationshipRepository.Contains(entity)) throw new InvalidOperationException("Entity already exists in the data storage.");
+            if (entity.IsReadFromDatabase) throw new InvalidOperationException("Entity appears to have been Read from Data Repository.");
+            if (_Repository.Entities.Contains(entity)) throw new InvalidOperationException("Entity already exists in the Data Repository.");
 
-            _EntityRelationshipRepository.Add(entity);
+            _Repository.Entities.Add(entity);
         }
 
         /// <summary>
@@ -89,7 +89,8 @@ namespace Andamio.Data.Access
         public override void Update(EntityType entity)
         {
             if (entity == null) throw new ArgumentNullException("entity");
-            if (!entity.IsReadFromDatabase || !_EntityRelationshipRepository.Contains(entity)) throw new InvalidOperationException("Entity does not exists in the data storage.");
+            if (!entity.IsReadFromDatabase) throw new InvalidOperationException("Entity Does Not appear to have been Read from Data Repository.");
+            if (!_Repository.Entities.Contains(entity)) throw new InvalidOperationException("Entity does not exists in the Data Repository.");
 
             entity.IsModified = false;
             entity.IsReadFromDatabase = true;
@@ -106,9 +107,9 @@ namespace Andamio.Data.Access
         {
             if (entity == null) throw new ArgumentNullException("entity");
 
-            if (_EntityRelationshipRepository.Contains(entity))
+            if (_Repository.Entities.Contains(entity))
             {
-                _EntityRelationshipRepository.Remove(entity);
+                _Repository.Entities.Remove(entity);
             }
         }
 
@@ -120,7 +121,7 @@ namespace Andamio.Data.Access
         /// </summary>
         public override List<EntityType> All()
         {
-            return _EntityRelationshipRepository.OfType<EntityType>().ToList();
+            return _Repository.Entities.OfType<EntityType>().ToList();
         }
 
         /// <summary>
@@ -131,7 +132,7 @@ namespace Andamio.Data.Access
         {
             if (predicate == null) throw new ArgumentNullException("predicate");
 
-            return _EntityRelationshipRepository.OfType<EntityType>().Where(predicate.Compile()).ToList();
+            return _Repository.Entities.OfType<EntityType>().Where(predicate.Compile()).ToList();
         }
 
         /// <summary>
@@ -142,7 +143,7 @@ namespace Andamio.Data.Access
         {
             if (predicate == null) throw new ArgumentNullException("predicate");
 
-            return _EntityRelationshipRepository.OfType<EntityType>().SingleOrDefault(predicate.Compile());
+            return _Repository.Entities.OfType<EntityType>().SingleOrDefault(predicate.Compile());
         }
 
         /// <summary>
@@ -170,7 +171,7 @@ namespace Andamio.Data.Access
 
             pageSettings = pageSettings ?? new SearchPageSettings();
 
-            var searchResults = _EntityRelationshipRepository.OfType<EntityType>().Where(predicate.Compile()).OrderBy(sort.Compile());
+            var searchResults = _Repository.Entities.OfType<EntityType>().Where(predicate.Compile()).OrderBy(sort.Compile());
             pageSettings.Calculate(searchResults);
 
             return searchResults.Skip(pageSettings.Skip).Take(pageSettings.PageSize).ToList();
@@ -189,7 +190,7 @@ namespace Andamio.Data.Access
 
             pageSettings = pageSettings ?? new SearchPageSettings();
 
-            IEnumerable<EntityType> searchResults = _EntityRelationshipRepository.OfType<EntityType>();
+            IEnumerable<EntityType> searchResults = _Repository.Entities.OfType<EntityType>();
             query.Queries.ForEach(predicate => searchResults = searchResults.Where(predicate.Compile()));
             query.Predicates.ForEach(predicate => searchResults = searchResults.Where(predicate));
 
@@ -235,8 +236,6 @@ namespace Andamio.Data.Access
                 throw new InvalidCastException();
             }
 
-            var relatedEntities = _EntityRelationshipRepository.RelatedEntities(entity, navigationProperty);
-
             foreach (CollectionType childEntity in collection)
             {
                 if (childEntity.IsModified)
@@ -244,19 +243,19 @@ namespace Andamio.Data.Access
                     DAO.For<CollectionType>().Upsert(childEntity);
                 }
 
-                if (!relatedEntities.Contains(childEntity))
+                if (!_Repository.Entity(entity).HasAssociation(childEntity, navigationProperty))
                 {
-                    _EntityRelationshipRepository.AddAssociation(entity, childEntity, navigationProperty);
-                } 
+                    _Repository.Entity(entity).AddAssociation(childEntity, navigationProperty);
+                }
             }
 
             if (collection.DeletedItems.Any())
             {
                 foreach (CollectionType deletedEntity in collection.DeletedItems)
                 {
-                    if (relatedEntities.Contains(deletedEntity))
+                    if (_Repository.Entity(entity).HasAssociation(deletedEntity, navigationProperty))
                     {
-                        _EntityRelationshipRepository.RemoveAssociation(entity, deletedEntity, navigationProperty);
+                        _Repository.Entity(entity).RemoveAssociation(deletedEntity, navigationProperty);
                     }
                     if (cascadeDelete)
                     {
@@ -268,6 +267,7 @@ namespace Andamio.Data.Access
             collection.Reset();
         }
 
+        /*
         internal override void SyncMany<CollectionType>(EntityType entity
             , Expression<Func<EntityType, ICollection<CollectionType>>> navigationProperty)
         {
@@ -286,9 +286,9 @@ namespace Andamio.Data.Access
             {
                 foreach (CollectionType deletedEntity in collection.DeletedItems)
                 {
-                    if (relatedEntities.Contains(deletedEntity))
+                    if (_Repository.HasAssociation(entity, deletedEntity, navigationProperty))
                     {
-                        _EntityRelationshipRepository.RemoveAssociation(entity, deletedEntity, navigationProperty);
+                        _Repository.RemoveAssociation(entity, deletedEntity, navigationProperty);
                     }
                     
                     DAO.For<CollectionType>().Delete(deletedEntity);
@@ -302,14 +302,15 @@ namespace Andamio.Data.Access
                     DAO.For<CollectionType>().Upsert(childEntity);
                 }
 
-                if (!relatedEntities.Contains(childEntity))
+                if (!_Repository. HasAssociation(entity, childEntity, navigationProperty))
                 {
-                    _EntityRelationshipRepository.AddAssociation(entity, childEntity, navigationProperty);
+                    _Repository.AddAssociation(entity, childEntity, navigationProperty);
                 }
             }
 
             collection.Reset();
         }
+        */
 
         #endregion
 
@@ -320,11 +321,7 @@ namespace Andamio.Data.Access
             if (entity == null) throw new ArgumentNullException("entity");
             if (navigationProperty == null) throw new ArgumentNullException("navigationProperty");
 
-            var relatedEntities = _EntityRelationshipRepository.RelatedEntities(entity, navigationProperty);
-
-            string propertyName = ((MemberExpression) navigationProperty.Body).Member.Name;            
-
-            var relatedEntities = entity.Property(propertyName).Value as ICollection<RelatedType>;
+            var relatedEntities = _Repository.Entity(entity).Related(navigationProperty);
             return relatedEntities.ToList();
         }
 
@@ -341,7 +338,7 @@ namespace Andamio.Data.Access
             if (entity == null) throw new ArgumentNullException("entity");
             if (navigationProperty == null) throw new ArgumentNullException("navigationProperty");
 
-            RelatedType relatedEntity = _EntityRelationshipRepository.RelatedEntity(entity, navigationProperty);
+            RelatedType relatedEntity = _Repository.Entity(entity).Related(navigationProperty);
             return relatedEntity;
         }
 
