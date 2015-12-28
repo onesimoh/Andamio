@@ -203,7 +203,26 @@ namespace Andamio.Data.Access
         public void RegisterDbContext<T>()
             where T : DbContext
         {
-            RegisterDbContext<T>(() => Activator.CreateInstance<T>());
+            if (DAO.Configuration.ConnectionStringSettings != null)
+            {
+                RegisterDbContext<T>(DAO.Configuration.ConnectionStringSettings);
+            }
+            else
+            {
+                RegisterDbContext<T>(() => Activator.CreateInstance<T>());
+            }
+        }
+
+        public void RegisterDbContext<T>(DbConnectionStringSettings connectionStringSettings)
+            where T : DbContext
+        {
+            if (connectionStringSettings == null) throw new ArgumentNullException("connectionStringSettings");
+            RegisterDbContext<T>(() =>
+            {
+                T dbContext = Activator.CreateInstance<T>();
+                dbContext.Database.Connection.ConnectionString = connectionStringSettings.ConnectionString;
+                return dbContext;
+            });
         }
 
         public void RegisterDbContext<T>(Func<T> contextResolver)
