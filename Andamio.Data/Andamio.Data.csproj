@@ -65,19 +65,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Caching\CacheItem..cs" />
-    <Compile Include="DataAccess\ConnectionStringSettings.cs" />
-    <Compile Include="DataAccess\DaoBase.cs" />
+    <Compile Include="DataAccess\DbConnectionSettings.cs" />
+    <Compile Include="DataAccess\Dao.cs" />
     <Compile Include="DataAccess\DaoEntity.cs" />
     <Compile Include="DataAccess\DaoQuery.cs" />
-    <Compile Include="DataAccess\EntityRelationshipRepository.cs" />
-    <Compile Include="DataAccess\FakeDAO.cs" />
+    <Compile Include="DataAccess\EFDataAdapter.cs" />
     <Compile Include="DataAccess\DataAccessBase.cs" />
-    <Compile Include="DataAccess\DataProvider.cs" />
-    <Compile Include="DataAccess\EFDaoBase.cs" />
-    <Compile Include="DataAccess\EFSimpleKeyDaoBase.cs" />
-    <Compile Include="DataAccess\EntityDataAccessBase.cs" />
     <Compile Include="DataAccess\Factory.cs" />
-    <Compile Include="DataAccess\StrongEntityDataAccessBase.cs" />
+    <Compile Include="DataAccess\IDao.cs" />
+    <Compile Include="DataAccess\IDataAdapter.cs" />
     <Compile Include="Entities\AuditEntity.cs" />
     <Compile Include="Entities\AuditGuidStrongEntityBase.cs" />
     <Compile Include="Entities\AuditStrongEntity.cs" />

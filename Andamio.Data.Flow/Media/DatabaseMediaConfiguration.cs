@@ -22,11 +22,11 @@ namespace Andamio.Data.Flow.Media
             Reader = ReaderFactory.Database(Settings);
         }
 
-        public DatabaseMediaConfiguration(DbConnectionStringSettings connectionStringSettings) : this()
+        public DatabaseMediaConfiguration(DbConnectionSettings connectionSettings) : this()
         {
-            if (connectionStringSettings == null) throw new ArgumentNullException("connectionStringSettings");
-            Settings.ConnectionString = connectionStringSettings.ConnectionString;
-            Settings.ConnectionProvider = connectionStringSettings.ProviderName;
+            if (connectionSettings == null) throw new ArgumentNullException("connectionSettings");
+            Settings.ConnectionString = connectionSettings.ConnectionString;
+            Settings.ConnectionProvider = connectionSettings.ProviderName;
         }
 
         public DatabaseMediaConfiguration(string connectionString) : this()

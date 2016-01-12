@@ -42,9 +42,9 @@ namespace Andamio.Data.Flow
         #endregion
 
         #region Database
-        public static DatabaseMediaConfiguration FromDatabase(DbConnectionStringSettings connectionStringSettings)
+        public static DatabaseMediaConfiguration FromDatabase(DbConnectionSettings connectionSettings)
         {
-            return new DatabaseMediaConfiguration(connectionStringSettings);
+            return new DatabaseMediaConfiguration(connectionSettings);
         }
 
         public static DatabaseMediaConfiguration FromDatabase(string connectionString)
@@ -52,9 +52,9 @@ namespace Andamio.Data.Flow
             return new DatabaseMediaConfiguration(connectionString);
         }
 
-        public static DatabaseMediaConfiguration FromDatabase(ConnectionStringSettings connectionStringSettings)
+        public static DatabaseMediaConfiguration FromDatabase(ConnectionStringSettings connectionSettings)
         {
-            return new DatabaseMediaConfiguration(connectionStringSettings);
+            return new DatabaseMediaConfiguration(connectionSettings);
         }
 
         #endregion

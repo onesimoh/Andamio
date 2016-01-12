@@ -1,12 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Linq.Expressions;
-
-using Andamio;
-using Andamio.Data;
 using Andamio.Data.Entities;
 
 namespace Andamio.Data.Access
@@ -15,61 +9,73 @@ namespace Andamio.Data.Access
         where EntityType : EntityBase, new()
     {
         #region Constructors
-        private DaoEntity()
+        protected DaoEntity()
         {
         }
 
-        internal DaoEntity(DaoBase<EntityType> dao, EntityType entity)
+        public DaoEntity(IDataAdapter dataAdapter, EntityType entity)
         {
-            if (dao == null) throw new ArgumentNullException("dao");
+            if (dataAdapter == null) throw new ArgumentNullException("dataAdapter");
             if (entity == null) throw new ArgumentNullException("entity");
 
-            Dao = dao;
+            DataAdapter = dataAdapter;
             Entity = entity;
         }
 
         #endregion
 
         #region Properties
-        private DaoBase<EntityType> Dao { get; set; }
-        private EntityType Entity { get; set; }
+        public IDataAdapter DataAdapter { get; private set; }
+        public EntityType Entity { get; private set; }
 
         #endregion
 
         #region Related
-        public virtual List<RelatedType> GetRelated<RelatedType>(Expression<Func<EntityType, ICollection<RelatedType>>> navigationProperty)
+        public virtual IEnumerable<RelatedType> Related<RelatedType>(Expression<Func<EntityType, ICollection<RelatedType>>> property)
             where RelatedType : EntityBase, new()
         {
-            return Dao.GetRelated(Entity, navigationProperty);
+            if (property == null) throw new ArgumentNullException("property");
+            return DataAdapter.Related(Entity, property);
         }
 
-        public virtual List<RelatedType> GetRelated<RelatedType, TProperty>(Expression<Func<EntityType, ICollection<RelatedType>>> navigationProperty
+        public virtual IEnumerable<RelatedType> Related<RelatedType, TProperty>(Expression<Func<EntityType, ICollection<RelatedType>>> property
             , Expression<Func<RelatedType, TProperty>> include)
             where RelatedType : EntityBase, new()
         {
-            return Dao.GetRelated(Entity, navigationProperty, include);
+            if (property == null) throw new ArgumentNullException("property");
+            return DataAdapter.Related(Entity, property, include);
         }
 
-        public virtual RelatedType GetRelated<RelatedType>(Expression<Func<EntityType, RelatedType>> navigationProperty)
-            where RelatedType : EntityBase
+        public virtual RelatedType Related<RelatedType>(Expression<Func<EntityType, RelatedType>> property)
+            where RelatedType : EntityBase, new()
         {
-            return Dao.GetRelated(Entity, navigationProperty);
-        }
-
-        public virtual void Load<RelatedType>(Expression<Func<EntityType, ICollection<RelatedType>>> navigationProperty)
-            where RelatedType : EntityBase
-        {
-            Dao.Load(Entity, navigationProperty);
+            if (property == null) throw new ArgumentNullException("property");
+            return DataAdapter.Related(Entity, property);
         }
 
         #endregion
 
         #region Sync
-        public virtual void SyncManyToMany<CollectionType>(Expression<Func<EntityType, ICollection<CollectionType>>> navigationProperty
+        public virtual void SyncManyToMany<CollectionType>(Expression<Func<EntityType
+            , ICollection<CollectionType>>> property
             , bool cascadeDelete = true)
             where CollectionType : EntityBase, new()
         {
-            Dao.SyncManyToMany(Entity, navigationProperty, cascadeDelete);
+            if (property == null) throw new ArgumentNullException("property");
+            DataAdapter.SyncManyToMany(Entity, property, cascadeDelete);
+        }
+
+        public virtual void SyncMany<CollectionType>(Expression<Func<EntityType
+            , ICollection<CollectionType>>> property)
+            where CollectionType : EntityBase, new()
+        {
+            string propertyName = ((MemberExpression) property.Body).Member.Name;
+            var collection = (EntityCollectionBase<CollectionType>) property.Compile().Invoke(Entity);
+
+            if (collection == null) return;
+            collection.DeletedItems.ForEach(deletedEntity => DAO.For<CollectionType>().Delete(deletedEntity));
+            collection.ForEach(entity => DAO.For<CollectionType>().Upsert(entity));
+            collection.Reset();
         }
 
         #endregion

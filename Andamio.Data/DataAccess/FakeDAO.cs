@@ -17,7 +17,7 @@ using Andamio.Data.Entities;
 
 namespace Andamio.Data.Access
 {
-    public partial class FakeDAO<EntityType> : DaoBase<EntityType>
+    public partial class FakeDAO<EntityType> : Dao<EntityType>
         where EntityType : EntityBase, new()
     {
         #region Internals

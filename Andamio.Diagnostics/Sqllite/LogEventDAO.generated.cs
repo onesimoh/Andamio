@@ -46,11 +46,10 @@ namespace Andamio.Diagnostics.Sqllite
         }
     }
 
-    public partial class LogEventDAO : EFDaoBase<LogEvent>
+    public partial class LogEventDAO : Dao<LogEvent>
     {
         #region Constructors
-        public LogEventDAO()
-            : base()
+        public LogEventDAO() : base()
         {
         }
 

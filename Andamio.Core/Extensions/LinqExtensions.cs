@@ -280,5 +280,40 @@ namespace Andamio
                 yield return selector(value);
             }
         }
+
+        public static Expression<Func<TInput, bool>> AndAlso<TInput>(this Expression<Func<TInput, bool>> left, Expression<Func<TInput, bool>> right)
+        {
+            var paramReplacer = new ExpressionParameterReplacer(right.Parameters, left.Parameters);
+            return Expression.Lambda<Func<TInput, bool>>(Expression.AndAlso(left.Body, paramReplacer.Visit(right.Body)), left.Parameters);
+        }
+
+        public static Expression<Func<TInput, bool>> OrElse<TInput>(this Expression<Func<TInput, bool>> func1, Expression<Func<TInput, bool>> func2)
+        {
+            return Expression.Lambda<Func<TInput, bool>>(
+                Expression.AndAlso(
+                    func1.Body, new ExpressionParameterReplacer(func2.Parameters, func1.Parameters).Visit(func2.Body)),
+                func1.Parameters);
+        }
+
+        private class ExpressionParameterReplacer : ExpressionVisitor
+        {
+            readonly IDictionary<ParameterExpression, ParameterExpression> ParameterReplacements = new Dictionary<ParameterExpression, ParameterExpression>();
+            public ExpressionParameterReplacer(IList<ParameterExpression> from, IList<ParameterExpression> to)
+            {
+                for (int i = 0; i != from.Count && i != to.Count; i++)
+                {
+                    ParameterReplacements.Add(from[i], to[i]);
+                }
+            }
+            protected override Expression VisitParameter(ParameterExpression node)
+            {
+                ParameterExpression replacement;
+                if (ParameterReplacements.TryGetValue(node, out replacement))
+                {
+                    node = replacement;
+                }
+                return base.VisitParameter(node);
+            }
+        }
     }
 }

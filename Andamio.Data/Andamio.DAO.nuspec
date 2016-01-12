@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>Andamio.DAO</id>
+        <version>2.0.0</version>
+        <title>Andamio.DAO</title>
+        <authors>Onesimo</authors>
+        <owners>Onesimo</owners>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Andamio.DAO is an abstraction over Entity Framework that follows the paradigms of the Data Access Object pattern.</description>
+        <copyright>Copyright © 2016</copyright>
+        <projectUrl>https://github.com/onesimoh/Andamio/wiki/Andamio.DAO</projectUrl>
+        <tags>ORM Data Access DAO</tags>
+        <dependencies>
+            <dependency id="EntityFramework" version="6.1.3" />
+            <dependency id="Newtonsoft.Json" version="7.0.1" />
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="bin\Release\Andamio.Core.dll" target="lib\net451\Andamio.Core.dll" />
+        <file src="bin\Release\Andamio.Data.dll" target="lib\net451\Andamio.Data.dll" />
+        <file src="bin\Release\Andamio.Security.dll" target="lib\net451\Andamio.Security.dll" />
+    </files>
+</package>

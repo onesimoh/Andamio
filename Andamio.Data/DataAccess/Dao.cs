@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Text;
-using System.Configuration;
-using System.Security.Principal;
+using System.Linq;
 using System.Linq.Expressions;
 
 using Andamio;
@@ -54,21 +51,6 @@ namespace Andamio.Data.Access
         {
             ThrowDataAccessException(e.Message, e);
         }
-
-        #endregion
-
-        #region Settings
-        /// <summary>
-        /// Returns a DataProvider specific for that database to access.
-        /// </summary>
-        /// <returns>The DataProvider for the Database.</returns>
-        public virtual DbConnectionStringSettings ConnectionStringSettings { get; set; }
-
-        /// <summary>
-        ///  Gets or sets the timeout value, in seconds, for all object context operations.
-        ///   A null value indicates that the default value of the underlying provider will be used.
-        /// </summary>
-        public virtual Nullable<int> CommandTimeout { get; set; }
 
         #endregion
 
@@ -124,9 +106,30 @@ namespace Andamio.Data.Access
     /// 
     /// </summary>
     /// <typeparam name="EntityType"></typeparam>
-    public abstract class DaoBase<EntityType> : DaoBase
+    public class Dao<EntityType> : DaoBase, IDao<EntityType>
         where EntityType : EntityBase, new()
     {
+        #region Constructors
+        public Dao()
+        {
+            if (DAO.Configuration.DataAdapter == null)
+            { throw new InvalidOperationException("A Default Data Adapter has not been provided."); }
+            DataAdapter = DAO.Configuration.DataAdapter;
+        }
+
+        public Dao(IDataAdapter dataAdapter)
+        {
+            if (dataAdapter == null) throw new ArgumentNullException("dataAdapter");
+            DataAdapter = dataAdapter;
+        }
+
+        #endregion
+
+        #region Properties
+        public IDataAdapter DataAdapter { get; set; }
+
+        #endregion
+
         #region Update\Insert
         /// <summary>
         /// Updates or Insert the specified Entity in the Data Source.
@@ -153,13 +156,13 @@ namespace Andamio.Data.Access
         /// <exception cref="System.InvalidOperationException">
         /// When attempting to insert an Entity that already exists in the Data Source.
         /// </exception>
-        public abstract void Insert(EntityType entity);
-
-        /// <summary>
-        /// Inserts the specified Entities in Bulk in a Transactional Operation.
-        /// </summary>
-        /// <param name="entities">The Entities to insert in the Data Source.</param>
-        public abstract void BulkUpsert(IEnumerable<EntityType> entities);
+        public virtual void Insert(EntityType entity)
+        {
+            if (entity == null) throw new ArgumentNullException("entity");
+            if (entity.IsReadFromDatabase) throw new InvalidOperationException("Entity is already in the database.");
+            OnUpdateOrInsertEntity(entity);
+            DataAdapter.Insert(entity);
+        }
 
         /// <summary>
         /// Updates the specified Entity in the Data Source.
@@ -168,7 +171,23 @@ namespace Andamio.Data.Access
         /// <exception cref="System.InvalidOperationException">
         /// When attempting to update an Entity that does not exist in the Data Source.
         /// </exception>        
-        public abstract void Update(EntityType entity);
+        public virtual void Update(EntityType entity)
+        {
+            if (entity == null) throw new ArgumentNullException("entity");
+            if (!entity.IsReadFromDatabase) throw new InvalidOperationException("Entity is not in the database.");
+            OnUpdateOrInsertEntity(entity);
+            DataAdapter.Update(entity);
+        }
+
+        /// <summary>
+        /// Executes after current values have been updated or Entity has been added to State Manager, 
+        /// and before Changes are saved to the Data Source.
+        /// </summary>
+        /// <param name="context">The ObjectContext instance managing the Update Operation.</param>
+        /// <param name="entity">The Entity being updated.</param>
+        protected virtual void OnUpdateOrInsertEntity(EntityType entity)
+        {
+        }
 
         #endregion
 
@@ -177,7 +196,11 @@ namespace Andamio.Data.Access
         /// Deletes the specified Entity from the Data Source.
         /// </summary>
         /// <param name="entity">The Entity to delete from the Data Source.</param>
-        public abstract void Delete(EntityType entity);
+        public virtual void Delete(EntityType entity)
+        {
+            if (entity == null) throw new ArgumentNullException("entity");
+            DataAdapter.Delete(entity);
+        }
 
         #endregion
 
@@ -185,26 +208,38 @@ namespace Andamio.Data.Access
         /// <summary>
         /// Retrieves all Entities in the Data Source.
         /// </summary>
-        public abstract List<EntityType> All();
+        public virtual List<EntityType> All()
+        {
+            return DataAdapter.Query<EntityType>().ToList();
+        }
 
         /// <summary>
         /// Retrieves all Entities from the Data Source for the specified predicate.
         /// </summary>
         /// <param name="predicate">The predicate function to filter the Entities in the Data Source.</param>
-        public abstract List<EntityType> Many(Expression<Func<EntityType, bool>> predicate);
+        public virtual List<EntityType> Many(Expression<Func<EntityType, bool>> predicate)
+        {
+            return DataAdapter.Query<EntityType>().Where(predicate).ToList();
+        }
 
         /// <summary>
         /// Retrieves a single Entity from the Data Source for the specified predicate.
         /// </summary>
         /// <param name="predicate">The predicate function to filter the Entities in the Data Source.</param>
-        public abstract EntityType Single(Expression<Func<EntityType, bool>> predicate);
+        public virtual EntityType Single(Expression<Func<EntityType, bool>> predicate)
+        {
+            return DataAdapter.Query<EntityType>().Where(predicate).FirstOrDefault();
+        }
 
         /// <summary>
         /// Retrieves an Entity from the Data Source for the specified Primary Key.
         /// </summary>
         /// <param name="primaryKey">The Primary Key that indentifies the Entity.</param>
-        public abstract EntityType WithKey<EntityKey>(EntityKey primaryKey)
-            where EntityKey : struct, IComparable<EntityKey>;
+        public virtual EntityType WithKey<EntityKey>(EntityKey primaryKey)
+            where EntityKey : struct, IComparable<EntityKey>
+        {
+            return DataAdapter.WithKey<EntityType, EntityKey>(primaryKey);
+        }
 
         #endregion
 
@@ -213,72 +248,60 @@ namespace Andamio.Data.Access
         /// Retrieves all Entities from the Data Source for the specified predicate.
         /// </summary>
         /// <param name="predicate">The predicate function to filter the Entities in the Data Source.</param>
-        public abstract List<EntityType> Search<SortKey>(Expression<Func<EntityType, bool>> predicate
-            , Expression<Func<EntityType, SortKey>> sort
-            , SearchPageSettings pageSettings = null);
+        public virtual List<EntityType> Search<SortKey>(Expression<Func<EntityType, bool>> predicate
+            , Expression<Func<EntityType, SortKey>> sort = null
+            , SearchPageSettings pageSettings = null)
+        {
+            if (predicate == null) throw new ArgumentNullException("predicate");
+
+            pageSettings = pageSettings ?? new SearchPageSettings();
+            var query = DataAdapter.Query<EntityType>().Where(predicate);
+
+            if (sort != null)
+            { query = query.OrderBy(sort); }
+
+            pageSettings.Calculate(query);
+            return query.Skip(pageSettings.Skip).Take(pageSettings.PageSize).ToList();
+        }
 
         /// <summary>
         /// Retrieves all Entities from the Data Source for the specified predicate.
         /// </summary>
         /// <param name="predicate">The predicate function to filter the Entities in the Data Source.</param>
-        public abstract List<EntityType> Search<SortKey>(DaoQuery<EntityType> query
-            , Expression<Func<EntityType, SortKey>> sort
-            , SearchPageSettings pageSettings = null);
+        public virtual List<EntityType> Search<SortKey>(DaoQuery<EntityType> query
+            , Expression<Func<EntityType, SortKey>> sort = null
+            , SearchPageSettings pageSettings = null)
+        {
+            if (query == null) throw new ArgumentNullException("query");
+            return Search((Expression<Func<EntityType, bool>> ) query, sort, pageSettings);
+        }
 
         /// <summary>
         /// Retrieves all Entities from the Data Source for the specified predicate.
         /// </summary>
         /// <param name="predicate">The predicate function to filter the Entities in the Data Source.</param>
-        public abstract DaoQuery<EntityType> Query(Expression<Func<EntityType, bool>> predicate);
+        public virtual DaoQuery<EntityType> Query(Expression<Func<EntityType, bool>> predicate)
+        {
+            DaoQuery<EntityType> query = new DaoQuery<EntityType>(predicate);
+            return query;
+        }
 
         /// <summary>
         /// Retrieves all Entities from the Data Source for the specified predicate.
         /// </summary>
-        public abstract DaoQuery<EntityType> Query();
+        public virtual DaoQuery<EntityType> Query()
+        {
+            DaoQuery<EntityType> query = new DaoQuery<EntityType>();
+            return query;
+        }
 
         #endregion
 
         #region Entity
         public DaoEntity<EntityType> Entity(EntityType entity)
         {
-            return new DaoEntity<EntityType>(this, entity);
+            return new DaoEntity<EntityType>(DataAdapter, entity);
         }
-
-        #endregion
-
-        #region Sync
-        internal abstract void SyncManyToMany<CollectionType>(EntityType entity
-            , Expression<Func<EntityType, ICollection<CollectionType>>> navigationProperty
-            , bool cascadeDelete = true)
-            where CollectionType : EntityBase, new();
-
-        public virtual void SyncMany(EntityCollectionBase<EntityType> collection)
-        {
-            if (collection == null) return;
-            collection.DeletedItems.ForEach(deletedEntity => DAO.For<EntityType>().Delete(deletedEntity));
-            collection.ForEach(entity => DAO.For<EntityType>().Upsert(entity));
-            collection.Reset();
-        }
-
-        #endregion
-
-        #region Related
-        internal abstract List<RelatedType> GetRelated<RelatedType>(EntityType entity
-            , Expression<Func<EntityType, ICollection<RelatedType>>> navigationProperty)
-            where RelatedType : EntityBase;
-
-        internal abstract List<RelatedType> GetRelated<RelatedType, TProperty>(EntityType entity
-            , Expression<Func<EntityType, ICollection<RelatedType>>> navigationProperty
-            , Expression<Func<RelatedType, TProperty>> include)
-            where RelatedType : EntityBase;
-
-        internal abstract RelatedType GetRelated<RelatedType>(EntityType entity
-            , Expression<Func<EntityType, RelatedType>> navigationProperty)
-            where RelatedType : EntityBase;
-
-        internal abstract void Load<RelatedType>(EntityType entity
-            , Expression<Func<EntityType, ICollection<RelatedType>>> navigationProperty)
-            where RelatedType : EntityBase;
 
         #endregion
     }

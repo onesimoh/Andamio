@@ -8,13 +8,13 @@ namespace Andamio.Data.Access
     /// <summary>
     /// Encapsulates the Settings for a Connection String.
     /// </summary>
-    public sealed class DbConnectionStringSettings
+    public sealed class DbConnectionSettings
     {
         #region Constructors
         /// <summary>
         /// Default Constructor
         /// </summary>
-        public DbConnectionStringSettings()
+        public DbConnectionSettings()
         {
         }
 
@@ -23,13 +23,10 @@ namespace Andamio.Data.Access
         /// </summary>
         /// <param name="connectionString">Connection String.</param>
         /// <param name="providerName">Provider Name.</param>
-        public DbConnectionStringSettings(string connectionString, string providerName)
+        public DbConnectionSettings(string connectionString, string providerName)
         {
-            if (String.IsNullOrEmpty(connectionString))
-            { throw new ArgumentNullException("connectionString"); }
-            if (String.IsNullOrEmpty(providerName))
-            { throw new ArgumentNullException("providerName"); }
-
+            if (connectionString.IsNullOrBlank()) throw new ArgumentNullException("connectionString");
+            if (providerName.IsNullOrBlank()) throw new ArgumentNullException("providerName");
             ConnectionString = connectionString;
             ProviderName = providerName;
         }
@@ -54,11 +51,11 @@ namespace Andamio.Data.Access
         /// Creates an instance of DbConnectionStringSettings object based on specified Connection String.
         /// </summary>
         /// <param name="connectionStringName">The name of the connection string.</param>
-        public static DbConnectionStringSettings FromName(string connectionStringName)
+        public static DbConnectionSettings FromName(string connectionStringName)
         {
             // Get Connection String and Provider type from config.
             ConnectionStringSettings connStringSettings = LoadConnectionString(connectionStringName);            
-            return new DbConnectionStringSettings(connStringSettings.ConnectionString, connStringSettings.ProviderName);
+            return new DbConnectionSettings(connStringSettings.ConnectionString, connStringSettings.ProviderName);
         }
 
         /// <summary>

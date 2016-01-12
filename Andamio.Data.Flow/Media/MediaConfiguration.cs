@@ -65,10 +65,10 @@ namespace Andamio.Data.Flow.Media
             return new DatabaseFormatter(this);
         }
 
-        public DatabaseFormatter ToDatabase(DbConnectionStringSettings connectionStringSettings)
+        public DatabaseFormatter ToDatabase(DbConnectionSettings connectionSettings)
         {
             DatabaseFormatter databaseConfiguration = ToDatabase();
-            databaseConfiguration.Connection(connectionStringSettings);
+            databaseConfiguration.Connection(connectionSettings);
             return databaseConfiguration;
         }
 
